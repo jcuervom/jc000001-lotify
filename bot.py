@@ -1,92 +1,60 @@
 import os
-import time
 import requests
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import time
 
 # Cargar variables de entorno
 load_dotenv()
-TARGET_LOT = int(os.getenv("TARGET_LOT"))
-TARGET_COMISARIA = os.getenv("TARGET_COMISARIA")
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Verificar que las variables están correctamente cargadas
-print(f"Target Lot: {TARGET_LOT}")
-print(f"Comisaría: {TARGET_COMISARIA}")
+# Leer las variables
+target_lot = os.getenv("TARGET_LOT")
+target_comisaria = os.getenv("TARGET_COMISARIA")
+telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
-# URL a monitorear
-URL = "https://www.extranjeriamurcia.com/lotes-recibidos"
+# Debug: Verificar que las variables de entorno se están leyendo correctamente
+print(f"Target Lot: {target_lot}")
+print(f"Comisaría: {target_comisaria}")
+print(f"Telegram Bot Token: {telegram_bot_token}")
+print(f"Telegram Chat ID: {telegram_chat_id}")
 
-def get_current_lot(comisaria):
-    """Obtiene el lote actual de la comisaría especificada."""
-    response = requests.get(URL)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, 'html.parser')
+if not target_lot or not target_comisaria or not telegram_bot_token or not telegram_chat_id:
+    print("Error: Algunas variables de entorno no están configuradas correctamente.")
+    exit()
 
-    # Buscar el texto que contiene el nombre de la comisaría
-    element = soup.find(string=lambda text: text and comisaria in text)
-    if element:
-        # Extraer el número del lote
-        lot_text = element.split("HASTA LOTE ")[-1].split(" /")[0]
-        return int(lot_text)
-    return None
+# Función para enviar un mensaje a Telegram
+def send_telegram_message(message):
+    url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage"
+    payload = {"chat_id": telegram_chat_id, "text": message}
+    try:
+        response = requests.post(url, data=payload)
+        if response.status_code == 200:
+            print("Mensaje enviado correctamente.")
+        else:
+            print(f"Error al enviar mensaje: {response.status_code}, {response.text}")
+    except Exception as e:
+        print(f"Error al intentar enviar el mensaje a Telegram: {e}")
 
-def send_telegram_notification(message):
-    """Envía una notificación por Telegram."""
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": message,
-        "parse_mode": "Markdown"
-    }
-    response = requests.post(url, json=payload)
-    if response.status_code == 200:
-        print("Mensaje enviado por Telegram.")
+# Función para verificar el lote y enviar notificación si es necesario
+def check_lote():
+    print("Iniciando la verificación del lote...")
+
+    # Aquí va la lógica para obtener los datos del sitio web y verificar el lote
+    # Ejemplo de datos simulados:
+    # Si el lote en la página web es igual o mayor al target, enviamos el mensaje
+    current_lote = 220  # Aquí deberías poner el valor real obtenido de la página web
+
+    print(f"Lote actual: {current_lote}")
+
+    if current_lote >= int(target_lot):
+        message = f"¡ALERTA! El lote {current_lote} ha alcanzado el objetivo de {target_lot}.\n¡Es hora de actuar!"
+        send_telegram_message(message)
     else:
-        print(f"Error al enviar mensaje: {response.status_code}, {response.text}")
+        print("El lote no ha alcanzado el objetivo, revisando nuevamente...")
+        message = "Aún no está disponible el lote que estamos esperando. Seguimos monitoreando..."
+        send_telegram_message(message)
 
-def main():
-    """Ejecuta el bot con notificaciones regulares e intensivas."""
-    print(f"Iniciando el bot para {TARGET_COMISARIA}...")
-    notified_goal = False
-
-    while True:
-        try:
-            # Obtener el lote actual
-            current_lot = get_current_lot(TARGET_COMISARIA)
-            if current_lot:
-                print(f"Lote actual para {TARGET_COMISARIA}: {current_lot}")
-
-                if current_lot >= TARGET_LOT:
-                    # Notificaciones intensivas cada 5 minutos si se cumple el objetivo
-                    message = (
-                        f"🎉 *¡Buenas noticias!* 🎉\n\n"
-                        f"El lote actual para *{TARGET_COMISARIA}* es `{current_lot}`.\n"
-                        f"🎯 ¡Ha alcanzado o superado el objetivo (`{TARGET_LOT}`)!\n\n"
-                        f"Por favor, confirma que has leído este mensaje."
-                    )
-                    send_telegram_notification(message)
-                    time.sleep(300)  # Esperar 5 minutos para la siguiente notificación
-                else:
-                    # Notificaciones regulares cada 8 horas si no se cumple el objetivo
-                    if not notified_goal:
-                        message = (
-                            f"🌐 *Actualización de lotes*\n\n"
-                            f"El lote actual para *{TARGET_COMISARIA}* es `{current_lot}`.\n"
-                            f"❌ Todavía no se ha alcanzado el objetivo (`{TARGET_LOT}`).\n\n"
-                            f"Seguiremos monitoreando y te avisaremos cuando esté disponible. 🕒"
-                        )
-                        send_telegram_notification(message)
-                        notified_goal = True
-                    time.sleep(28800)  # 8 horas en segundos
-            else:
-                print("No se pudo obtener el lote actual. Intentando nuevamente en 8 horas.")
-                time.sleep(28800)  # 8 horas en segundos
-
-        except Exception as e:
-            print(f"Error: {e}")
-            time.sleep(600)  # Esperar 10 minutos antes de reintentar en caso de error
-
-if __name__ == "__main__":
-    main()
+# Revisión periódica cada 8 horas
+while True:
+    check_lote()
+    time.sleep(28800)  # 8 horas en segundos
