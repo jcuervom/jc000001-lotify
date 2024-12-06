@@ -11,6 +11,10 @@ TARGET_COMISARIA = os.getenv("TARGET_COMISARIA")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+# Verificar que las variables están correctamente cargadas
+print(f"Target Lot: {TARGET_LOT}")
+print(f"Comisaría: {TARGET_COMISARIA}")
+
 # URL a monitorear
 URL = "https://www.extranjeriamurcia.com/lotes-recibidos"
 
