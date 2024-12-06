@@ -3,19 +3,13 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from twilio.rest import Client
 
 # Cargar variables de entorno
 load_dotenv()
 TARGET_LOT = int(os.getenv("TARGET_LOT"))
 TARGET_COMISARIA = os.getenv("TARGET_COMISARIA")
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM")
-WHATSAPP_TO = os.getenv("WHATSAPP_TO")
-
-# Configurar cliente de Twilio
-client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # URL a monitorear
 URL = "https://www.extranjeriamurcia.com/lotes-recibidos"
@@ -34,17 +28,24 @@ def get_current_lot(comisaria):
         return int(lot_text)
     return None
 
-def send_whatsapp_notification(comisaria, current_lot):
-    """Envía una notificación por WhatsApp."""
-    message = client.messages.create(
-        from_=TWILIO_WHATSAPP_FROM,
-        body=(
-            f"El lote actual para {comisaria} es {current_lot}. "
-            f"Ha alcanzado o superado el objetivo ({TARGET_LOT})."
-        ),
-        to=WHATSAPP_TO
+def send_telegram_notification(comisaria, current_lot):
+    """Envía una notificación por Telegram."""
+    message = (
+        f"📢 *Actualización de lotes*\n\n"
+        f"El lote actual para *{comisaria}* es `{current_lot}`.\n"
+        f"Ha alcanzado o superado el objetivo (`{TARGET_LOT}`)."
     )
-    print(f"Mensaje enviado: {message.sid}")
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    response = requests.post(url, json=payload)
+    if response.status_code == 200:
+        print("Mensaje enviado por Telegram.")
+    else:
+        print(f"Error al enviar mensaje: {response.status_code}, {response.text}")
 
 def main():
     """Ejecuta el bot en un bucle."""
@@ -55,7 +56,7 @@ def main():
             if current_lot:
                 print(f"Lote actual para {TARGET_COMISARIA}: {current_lot}")
                 if current_lot >= TARGET_LOT:
-                    send_whatsapp_notification(TARGET_COMISARIA, current_lot)
+                    send_telegram_notification(TARGET_COMISARIA, current_lot)
                     break
             else:
                 print("No se pudo obtener el lote actual.")

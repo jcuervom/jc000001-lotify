@@ -1,6 +1,4 @@
 TARGET_LOT=220
-TARGET_COMISARIA=COMISARÍA DE LORCA  # Cambia al nombre de la comisaría deseada
-TWILIO_ACCOUNT_SID=tu_sid_de_twilio
-TWILIO_AUTH_TOKEN=tu_auth_token_de_twilio
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-WHATSAPP_TO=whatsapp:+tu_numero_de_whatsapp
+TARGET_COMISARIA=COMISARÍA DE LORCA
+TELEGRAM_BOT_TOKEN=tu_telegram_bot_token
+TELEGRAM_CHAT_ID=tu_chat_id
