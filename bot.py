@@ -28,13 +28,8 @@ def get_current_lot(comisaria):
         return int(lot_text)
     return None
 
-def send_telegram_notification(comisaria, current_lot):
+def send_telegram_notification(message):
     """Envía una notificación por Telegram."""
-    message = (
-        f"📢 *Actualización de lotes*\n\n"
-        f"El lote actual para *{comisaria}* es `{current_lot}`.\n"
-        f"Ha alcanzado o superado el objetivo (`{TARGET_LOT}`)."
-    )
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -48,23 +43,46 @@ def send_telegram_notification(comisaria, current_lot):
         print(f"Error al enviar mensaje: {response.status_code}, {response.text}")
 
 def main():
-    """Ejecuta el bot en un bucle."""
+    """Ejecuta el bot con notificaciones regulares e intensivas."""
     print(f"Iniciando el bot para {TARGET_COMISARIA}...")
+    notified_goal = False
+
     while True:
         try:
+            # Obtener el lote actual
             current_lot = get_current_lot(TARGET_COMISARIA)
             if current_lot:
                 print(f"Lote actual para {TARGET_COMISARIA}: {current_lot}")
+
                 if current_lot >= TARGET_LOT:
-                    send_telegram_notification(TARGET_COMISARIA, current_lot)
-                    break
+                    # Notificaciones intensivas cada 5 minutos si se cumple el objetivo
+                    message = (
+                        f"🎉 *¡Buenas noticias!* 🎉\n\n"
+                        f"El lote actual para *{TARGET_COMISARIA}* es `{current_lot}`.\n"
+                        f"🎯 ¡Ha alcanzado o superado el objetivo (`{TARGET_LOT}`)!\n\n"
+                        f"Por favor, confirma que has leído este mensaje."
+                    )
+                    send_telegram_notification(message)
+                    time.sleep(300)  # Esperar 5 minutos para la siguiente notificación
+                else:
+                    # Notificaciones regulares cada 8 horas si no se cumple el objetivo
+                    if not notified_goal:
+                        message = (
+                            f"🌐 *Actualización de lotes*\n\n"
+                            f"El lote actual para *{TARGET_COMISARIA}* es `{current_lot}`.\n"
+                            f"❌ Todavía no se ha alcanzado el objetivo (`{TARGET_LOT}`).\n\n"
+                            f"Seguiremos monitoreando y te avisaremos cuando esté disponible. 🕒"
+                        )
+                        send_telegram_notification(message)
+                        notified_goal = True
+                    time.sleep(28800)  # 8 horas en segundos
             else:
-                print("No se pudo obtener el lote actual.")
+                print("No se pudo obtener el lote actual. Intentando nuevamente en 8 horas.")
+                time.sleep(28800)  # 8 horas en segundos
+
         except Exception as e:
             print(f"Error: {e}")
-        
-        # Esperar 8 horas antes de verificar nuevamente
-        time.sleep(28800)
+            time.sleep(600)  # Esperar 10 minutos antes de reintentar en caso de error
 
 if __name__ == "__main__":
     main()
