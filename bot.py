@@ -49,7 +49,8 @@ def send_telegram_notification(message):
 def main():
     """Ejecuta el bot con notificaciones regulares e intensivas."""
     print(f"Iniciando el bot para {TARGET_COMISARIA}...")
-    notified_goal = False
+    notified_goal = False  # Notificación de objetivo cumplido
+    notified_update = False  # Notificación de actualización regular
 
     while True:
         try:
@@ -59,7 +60,7 @@ def main():
                 print(f"Lote actual para {TARGET_COMISARIA}: {current_lot}")
 
                 if current_lot >= TARGET_LOT:
-                    # Notificaciones intensivas cada 5 minutos si se cumple el objetivo
+                    # Notificar intensivamente cada 5 minutos si se cumple el objetivo
                     message = (
                         f"🎉 *¡Buenas noticias!* 🎉\n\n"
                         f"El lote actual para *{TARGET_COMISARIA}* es `{current_lot}`.\n"
@@ -67,10 +68,12 @@ def main():
                         f"Por favor, confirma que has leído este mensaje."
                     )
                     send_telegram_notification(message)
-                    time.sleep(300)  # Esperar 5 minutos para la siguiente notificación
+                    notified_goal = True
+                    notified_update = False  # Restablecer actualizaciones regulares
+                    time.sleep(300)  # 5 minutos para la siguiente notificación
                 else:
                     # Notificaciones regulares cada 8 horas si no se cumple el objetivo
-                    if not notified_goal:
+                    if not notified_update:
                         message = (
                             f"🌐 *Actualización de lotes*\n\n"
                             f"El lote actual para *{TARGET_COMISARIA}* es `{current_lot}`.\n"
@@ -78,7 +81,8 @@ def main():
                             f"Seguiremos monitoreando y te avisaremos cuando esté disponible. 🕒"
                         )
                         send_telegram_notification(message)
-                        notified_goal = True
+                        notified_update = True  # Marcar notificación enviada
+                        notified_goal = False  # Restablecer objetivo no cumplido
                     time.sleep(28800)  # 8 horas en segundos
             else:
                 print("No se pudo obtener el lote actual. Intentando nuevamente en 8 horas.")
@@ -86,7 +90,7 @@ def main():
 
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(600)  # Esperar 10 minutos antes de reintentar en caso de error
+            time.sleep(600)  # 10 minutos antes de reintentar en caso de error
 
 if __name__ == "__main__":
     main()
